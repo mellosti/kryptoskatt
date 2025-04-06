@@ -1,0 +1,177 @@
+package okx
+
+import (
+	"crypto-skatt-go/crypto"
+	"crypto-skatt-go/exchange"
+	"crypto-skatt-go/http"
+	"encoding/json"
+	"fmt"
+	"io"
+	"strconv"
+	"strings"
+	"time"
+)
+
+type OkxApiAdapter struct {
+	ApiKey     string
+	SecretKey  string
+	Passphrase string
+	BaseUrl    string
+}
+
+func (o *OkxApiAdapter) GetWithdrawHistory(startTime int64, endTime int64) ([]exchange.TransferHistory, error) {
+	// Implement the logic to fetch withdraw history from Okx API
+	return []exchange.TransferHistory{}, nil
+}
+
+func (o *OkxApiAdapter) GetDepositHistory(startTime int64, endTime int64) ([]exchange.TransferHistory, error) {
+	// Implement the logic to fetch deposit history from Okx API
+	return []exchange.TransferHistory{}, nil
+}
+
+type OkxOrderHistoryResponse struct {
+	Code string `json:"code"`
+	Msg  string `json:"msg"`
+	Data []struct {
+		OrdId     string `json:"ordId"`
+		State     string `json:"state"`
+		Side      string `json:"side"`
+		FillTime  string `json:"fillTime"`
+		InstId    string `json:"instId"`
+		AccFillSz string `json:"accFillSz"`
+		AvgPx     string `json:"avgPx"`
+		Fee       string `json:"fee"`
+		FeeCcy    string `json:"feeCcy"`
+	} `json:"data"`
+}
+
+func (o *OkxApiAdapter) GetOrderHistory(startTime int64, endTime int64) ([]exchange.OrderHistory, error) {
+	endpoint := "/api/v5/trade/orders-history-archive"
+	queryParams := map[string]string{
+		"limit":    "100",
+		"instType": "SPOT",
+	}
+	headers, err := o.getOkxHeaders(endpoint, "GET", queryParams, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := http.Get(http.GetRequest{
+		Url:         o.BaseUrl + endpoint,
+		QueryParams: queryParams,
+		Headers:     headers,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	var parsedResponse OkxOrderHistoryResponse
+	if err := json.Unmarshal(body, &parsedResponse); err != nil {
+		return nil, err
+	}
+
+	orderHistory := []exchange.OrderHistory{}
+	for _, order := range parsedResponse.Data {
+		if order.State == "filled" || order.State == "partially_filled" {
+			var boughtCoin string
+			var soldCoin string
+			var boughtAmount float64
+			var soldAmount float64
+
+			if order.Side == "buy" {
+				boughtCoin = strings.Split(order.InstId, "-")[0]
+				soldCoin = strings.Split(order.InstId, "-")[1]
+				boughtAmount = parseFloat64(order.AccFillSz)
+				soldAmount = parseFloat64(order.AccFillSz) * parseFloat64(order.AvgPx)
+			} else {
+				boughtCoin = strings.Split(order.InstId, "-")[1]
+				soldCoin = strings.Split(order.InstId, "-")[0]
+				soldAmount = parseFloat64(order.AccFillSz)
+				boughtAmount = parseFloat64(order.AccFillSz) * parseFloat64(order.AvgPx)
+			}
+
+			orderHistory = append(orderHistory, exchange.OrderHistory{
+				BoughtCoin:   boughtCoin,
+				BoughtAmount: boughtAmount,
+				SoldCoin:     soldCoin,
+				SoldAmount:   soldAmount,
+				FeeAmount:    parseFloat32(order.Fee),
+				FeeCurrency:  order.FeeCcy,
+				Timestamp:    order.FillTime,
+			})
+		}
+	}
+
+	return orderHistory, nil
+}
+
+func (o *OkxApiAdapter) getOkxHeaders(url string, method string, queryParams map[string]string, bodyParams map[string]string) (map[string]string, error) {
+	timestampIso := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
+	signature, err := o.getOkxSignature(timestampIso, method, url, queryParams, bodyParams)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{
+		"CONTENT-TYPE":         "application/json",
+		"OK-ACCESS-KEY":        o.ApiKey,
+		"OK-ACCESS-SIGN":       signature,
+		"OK-ACCESS-TIMESTAMP":  timestampIso,
+		"OK-ACCESS-PASSPHRASE": o.Passphrase,
+	}, nil
+}
+
+func (o *OkxApiAdapter) getOkxSignature(timestampIso string, method string, endpoint string, queryParams map[string]string, bodyParams map[string]string) (string, error) {
+	methodUpper := strings.ToUpper(method)
+
+	var bodyString string
+	if bodyParams != nil {
+		bytes, err := json.Marshal(bodyParams)
+		if err != nil {
+			return "", err
+		}
+		bodyString = string(bytes)
+	}
+
+	var queryString string
+	if queryParams != nil {
+		queryString = "?" + http.EncodeQueryParams(queryParams)
+	}
+
+	signatureString := fmt.Sprintf("%s%s%s%s%s", timestampIso, methodUpper, endpoint, queryString, bodyString)
+
+	fmt.Println("Signature string:", signatureString)
+	hmac := crypto.GetHmac(signatureString, o.SecretKey)
+	fmt.Println("HMAC:", hmac)
+	return hmac, nil
+}
+
+func parseFloat64(s string) float64 {
+	if s == "" {
+		return 0
+	}
+	value, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		fmt.Printf("Error parsing '%s' as float: %v\n", s, err)
+		return 0
+	}
+	return value
+}
+
+func parseFloat32(s string) float32 {
+	if s == "" {
+		return 0
+	}
+	value, err := strconv.ParseFloat(s, 32)
+	if err != nil {
+		fmt.Printf("Error parsing '%s' as float: %v\n", s, err)
+		return 0
+	}
+	return float32(value)
+}
