@@ -2,7 +2,8 @@ package okx
 
 import "time"
 
-type Headers struct {
+// Credentials stores API authentication information
+type Credentials struct {
 	ApiKey     string
 	SecretKey  string
 	Passphrase string
@@ -18,21 +19,23 @@ const (
 	PATCH  Method = "PATCH"
 )
 
-func (h Headers) GetHeaders(url string, method Method, queryParams map[string]string, bodyParams map[string]string) map[string]string {
+// GenerateHeaders creates the required headers for OKX API authentication
+func (c *Credentials) GenerateHeaders(url string, method Method, queryParams map[string]string, bodyParams map[string]string) map[string]string {
 	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
 	signature := Signature{
 		Timestamp:   timestamp,
 		Method:      string(method),
 		Endpoint:    url,
-		SecretKey:   h.SecretKey,
+		SecretKey:   c.SecretKey,
 		QueryParams: queryParams,
 		BodyParams:  bodyParams,
 	}.Encode()
+
 	return map[string]string{
 		"CONTENT-TYPE":         "application/json",
-		"OK-ACCESS-KEY":        h.ApiKey,
+		"OK-ACCESS-KEY":        c.ApiKey,
 		"OK-ACCESS-SIGN":       signature,
 		"OK-ACCESS-TIMESTAMP":  timestamp,
-		"OK-ACCESS-PASSPHRASE": h.Passphrase,
+		"OK-ACCESS-PASSPHRASE": c.Passphrase,
 	}
 }

@@ -12,11 +12,8 @@ import (
 )
 
 type OkxApiAdapter struct {
-	ApiKey     string
-	SecretKey  string
-	Passphrase string
-	httpClient *http.Client
-	headers    Headers
+	httpClient  *http.Client
+	credentials Credentials
 }
 
 func NewOkxApiAdapter() *OkxApiAdapter {
@@ -29,11 +26,8 @@ func NewOkxApiAdapter() *OkxApiAdapter {
 	passphrase := os.Getenv("OKX_API_PASSPHRASE")
 
 	return &OkxApiAdapter{
-		ApiKey:     apiKey,
-		SecretKey:  secretKey,
-		Passphrase: passphrase,
 		httpClient: http.NewClient("https://my.okx.com"),
-		headers: Headers{
+		credentials: Credentials{
 			ApiKey:     apiKey,
 			SecretKey:  secretKey,
 			Passphrase: passphrase,
@@ -73,7 +67,8 @@ func (o *OkxApiAdapter) GetOrderHistory(startTime int64, endTime int64) ([]excha
 		"limit":    "100",
 		"instType": "SPOT",
 	}
-	headers := o.headers.GetHeaders(endpoint, GET, queryParams, nil)
+
+	headers := o.credentials.GenerateHeaders(endpoint, GET, queryParams, nil)
 	_, body, err := o.httpClient.Get(endpoint, queryParams, headers)
 	if err != nil {
 		return nil, err
