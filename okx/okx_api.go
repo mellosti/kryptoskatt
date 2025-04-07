@@ -3,10 +3,9 @@ package okx
 import (
 	"crypto-skatt-go/exchange"
 	"crypto-skatt-go/http"
+	"crypto-skatt-go/util"
 	"encoding/json"
-	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -96,13 +95,13 @@ func (o *OkxApiAdapter) GetOrderHistory(startTime int64, endTime int64) ([]excha
 			if order.Side == "buy" {
 				boughtCoin = strings.Split(order.InstId, "-")[0]
 				soldCoin = strings.Split(order.InstId, "-")[1]
-				boughtAmount = parseFloat64(order.AccFillSz)
-				soldAmount = parseFloat64(order.AccFillSz) * parseFloat64(order.AvgPx)
+				boughtAmount = util.ParseFloat64(order.AccFillSz)
+				soldAmount = util.ParseFloat64(order.AccFillSz) * util.ParseFloat64(order.AvgPx)
 			} else {
 				boughtCoin = strings.Split(order.InstId, "-")[1]
 				soldCoin = strings.Split(order.InstId, "-")[0]
-				soldAmount = parseFloat64(order.AccFillSz)
-				boughtAmount = parseFloat64(order.AccFillSz) * parseFloat64(order.AvgPx)
+				soldAmount = util.ParseFloat64(order.AccFillSz)
+				boughtAmount = util.ParseFloat64(order.AccFillSz) * util.ParseFloat64(order.AvgPx)
 			}
 
 			orderHistory = append(orderHistory, exchange.OrderHistory{
@@ -110,7 +109,7 @@ func (o *OkxApiAdapter) GetOrderHistory(startTime int64, endTime int64) ([]excha
 				BoughtAmount: boughtAmount,
 				SoldCoin:     soldCoin,
 				SoldAmount:   soldAmount,
-				FeeAmount:    parseFloat32(order.Fee),
+				FeeAmount:    util.ParseFloat32(order.Fee),
 				FeeCurrency:  order.FeeCcy,
 				Timestamp:    order.FillTime,
 			})
@@ -118,28 +117,4 @@ func (o *OkxApiAdapter) GetOrderHistory(startTime int64, endTime int64) ([]excha
 	}
 
 	return orderHistory, nil
-}
-
-func parseFloat64(s string) float64 {
-	if s == "" {
-		return 0
-	}
-	value, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		fmt.Printf("Error parsing '%s' as float: %v\n", s, err)
-		return 0
-	}
-	return value
-}
-
-func parseFloat32(s string) float32 {
-	if s == "" {
-		return 0
-	}
-	value, err := strconv.ParseFloat(s, 32)
-	if err != nil {
-		fmt.Printf("Error parsing '%s' as float: %v\n", s, err)
-		return 0
-	}
-	return float32(value)
 }
