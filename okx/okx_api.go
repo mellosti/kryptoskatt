@@ -1,7 +1,6 @@
 package okx
 
 import (
-	"crypto-skatt-go/crypto"
 	"crypto-skatt-go/exchange"
 	"crypto-skatt-go/http"
 	"encoding/json"
@@ -119,10 +118,14 @@ func (o *OkxApiAdapter) GetOrderHistory(startTime int64, endTime int64) ([]excha
 
 func (o *OkxApiAdapter) getOkxHeaders(url string, method string, queryParams map[string]string, bodyParams map[string]string) (map[string]string, error) {
 	timestampIso := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
-	signature, err := o.getOkxSignature(timestampIso, method, url, queryParams, bodyParams)
-	if err != nil {
-		return nil, err
-	}
+	signature := Signature{
+		Timestamp:   timestampIso,
+		Method:      method,
+		Endpoint:    url,
+		SecretKey:   o.SecretKey,
+		QueryParams: queryParams,
+		BodyParams:  bodyParams,
+	}.Encode()
 	return map[string]string{
 		"CONTENT-TYPE":         "application/json",
 		"OK-ACCESS-KEY":        o.ApiKey,
@@ -130,29 +133,6 @@ func (o *OkxApiAdapter) getOkxHeaders(url string, method string, queryParams map
 		"OK-ACCESS-TIMESTAMP":  timestampIso,
 		"OK-ACCESS-PASSPHRASE": o.Passphrase,
 	}, nil
-}
-
-func (o *OkxApiAdapter) getOkxSignature(timestampIso string, method string, endpoint string, queryParams map[string]string, bodyParams map[string]string) (string, error) {
-	methodUpper := strings.ToUpper(method)
-
-	var bodyString string
-	if bodyParams != nil {
-		bytes, err := json.Marshal(bodyParams)
-		if err != nil {
-			return "", err
-		}
-		bodyString = string(bytes)
-	}
-
-	var queryString string
-	if queryParams != nil {
-		queryString = "?" + http.EncodeQueryParams(queryParams)
-	}
-
-	signatureString := fmt.Sprintf("%s%s%s%s%s", timestampIso, methodUpper, endpoint, queryString, bodyString)
-
-	hmac := crypto.GetHmac(signatureString, o.SecretKey)
-	return hmac, nil
 }
 
 func parseFloat64(s string) float64 {
