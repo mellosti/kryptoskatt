@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -18,6 +17,7 @@ type OkxApiAdapter struct {
 	SecretKey  string
 	Passphrase string
 	httpClient *http.Client
+	headers    Headers
 }
 
 func NewOkxApiAdapter() *OkxApiAdapter {
@@ -25,11 +25,20 @@ func NewOkxApiAdapter() *OkxApiAdapter {
 		panic("Error loading .env file" + err.Error())
 	}
 
+	apiKey := os.Getenv("OKX_API_KEY")
+	secretKey := os.Getenv("OKX_API_SECRET")
+	passphrase := os.Getenv("OKX_API_PASSPHRASE")
+
 	return &OkxApiAdapter{
-		ApiKey:     os.Getenv("OKX_API_KEY"),
-		SecretKey:  os.Getenv("OKX_API_SECRET"),
-		Passphrase: os.Getenv("OKX_API_PASSPHRASE"),
+		ApiKey:     apiKey,
+		SecretKey:  secretKey,
+		Passphrase: passphrase,
 		httpClient: http.NewClient("https://my.okx.com"),
+		headers: Headers{
+			ApiKey:     apiKey,
+			SecretKey:  secretKey,
+			Passphrase: passphrase,
+		},
 	}
 }
 
@@ -65,13 +74,8 @@ func (o *OkxApiAdapter) GetOrderHistory(startTime int64, endTime int64) ([]excha
 		"limit":    "100",
 		"instType": "SPOT",
 	}
-	headers, err := o.getOkxHeaders(endpoint, "GET", queryParams, nil)
-	if err != nil {
-		return nil, err
-	}
-
+	headers := o.headers.GetHeaders(endpoint, "GET", queryParams, nil)
 	_, body, err := o.httpClient.Get(endpoint, queryParams, headers)
-
 	if err != nil {
 		return nil, err
 	}
@@ -114,25 +118,6 @@ func (o *OkxApiAdapter) GetOrderHistory(startTime int64, endTime int64) ([]excha
 	}
 
 	return orderHistory, nil
-}
-
-func (o *OkxApiAdapter) getOkxHeaders(url string, method string, queryParams map[string]string, bodyParams map[string]string) (map[string]string, error) {
-	timestampIso := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
-	signature := Signature{
-		Timestamp:   timestampIso,
-		Method:      method,
-		Endpoint:    url,
-		SecretKey:   o.SecretKey,
-		QueryParams: queryParams,
-		BodyParams:  bodyParams,
-	}.Encode()
-	return map[string]string{
-		"CONTENT-TYPE":         "application/json",
-		"OK-ACCESS-KEY":        o.ApiKey,
-		"OK-ACCESS-SIGN":       signature,
-		"OK-ACCESS-TIMESTAMP":  timestampIso,
-		"OK-ACCESS-PASSPHRASE": o.Passphrase,
-	}, nil
 }
 
 func parseFloat64(s string) float64 {
