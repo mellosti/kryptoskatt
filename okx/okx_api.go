@@ -73,7 +73,7 @@ func (o *OkxApiAdapter) GetOrderHistory(startTime int64, endTime int64) ([]excha
 		"limit":    "100",
 		"instType": "SPOT",
 	}
-	headers := o.headers.GetHeaders(endpoint, "GET", queryParams, nil)
+	headers := o.headers.GetHeaders(endpoint, GET, queryParams, nil)
 	_, body, err := o.httpClient.Get(endpoint, queryParams, headers)
 	if err != nil {
 		return nil, err

@@ -8,11 +8,21 @@ type Headers struct {
 	Passphrase string
 }
 
-func (h Headers) GetHeaders(url string, method string, queryParams map[string]string, bodyParams map[string]string) map[string]string {
+type Method string
+
+const (
+	GET    Method = "GET"
+	POST   Method = "POST"
+	PUT    Method = "PUT"
+	DELETE Method = "DELETE"
+	PATCH  Method = "PATCH"
+)
+
+func (h Headers) GetHeaders(url string, method Method, queryParams map[string]string, bodyParams map[string]string) map[string]string {
 	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
 	signature := Signature{
 		Timestamp:   timestamp,
-		Method:      method,
+		Method:      string(method),
 		Endpoint:    url,
 		SecretKey:   h.SecretKey,
 		QueryParams: queryParams,
