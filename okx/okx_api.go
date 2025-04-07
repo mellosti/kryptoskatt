@@ -6,17 +6,32 @@ import (
 	"crypto-skatt-go/http"
 	"encoding/json"
 	"fmt"
-	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 type OkxApiAdapter struct {
 	ApiKey     string
 	SecretKey  string
 	Passphrase string
-	BaseUrl    string
+	httpClient *http.Client
+}
+
+func NewOkxApiAdapter() *OkxApiAdapter {
+	if err := godotenv.Load(); err != nil {
+		panic("Error loading .env file" + err.Error())
+	}
+
+	return &OkxApiAdapter{
+		ApiKey:     os.Getenv("OKX_API_KEY"),
+		SecretKey:  os.Getenv("OKX_API_SECRET"),
+		Passphrase: os.Getenv("OKX_API_PASSPHRASE"),
+		httpClient: http.NewClient("https://my.okx.com"),
+	}
 }
 
 func (o *OkxApiAdapter) GetWithdrawHistory(startTime int64, endTime int64) ([]exchange.TransferHistory, error) {
@@ -56,21 +71,11 @@ func (o *OkxApiAdapter) GetOrderHistory(startTime int64, endTime int64) ([]excha
 		return nil, err
 	}
 
-	response, err := http.Get(http.GetRequest{
-		Url:         o.BaseUrl + endpoint,
-		QueryParams: queryParams,
-		Headers:     headers,
-	})
+	_, body, err := o.httpClient.Get(endpoint, queryParams, headers)
 
 	if err != nil {
 		return nil, err
 	}
-
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
 
 	var parsedResponse OkxOrderHistoryResponse
 	if err := json.Unmarshal(body, &parsedResponse); err != nil {
@@ -146,9 +151,7 @@ func (o *OkxApiAdapter) getOkxSignature(timestampIso string, method string, endp
 
 	signatureString := fmt.Sprintf("%s%s%s%s%s", timestampIso, methodUpper, endpoint, queryString, bodyString)
 
-	fmt.Println("Signature string:", signatureString)
 	hmac := crypto.GetHmac(signatureString, o.SecretKey)
-	fmt.Println("HMAC:", hmac)
 	return hmac, nil
 }
 
