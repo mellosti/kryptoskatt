@@ -3,6 +3,7 @@ package main
 import (
 	"time"
 
+	"crypto-skatt-go/excel"
 	"crypto-skatt-go/exchange"
 	"crypto-skatt-go/okx"
 )
@@ -10,9 +11,11 @@ import (
 func main() {
 
 	// Create a new OkxApi instance
-	okxApi := okx.NewOkxApiAdapter()
+	okxApiAdapter := okx.NewOkxApiAdapter()
+	excelService := excel.NewExcelService()
 	exchangeService := &exchange.ExchangeService{
-		Api: okxApi,
+		Api:               okxApiAdapter,
+		FileExportService: excelService,
 	}
 
 	// Define time range for the past 30 days

@@ -105,9 +105,10 @@ func (o *OkxApiAdapter) GetOrderHistory(startTime int64, endTime int64) ([]excha
 				BoughtAmount: boughtAmount,
 				SoldCoin:     soldCoin,
 				SoldAmount:   soldAmount,
-				FeeAmount:    util.ParseFloat32(order.Fee),
+				FeeAmount:    util.ParseFloat32(order.Fee) * -1,
 				FeeCurrency:  order.FeeCcy,
 				Timestamp:    order.FillTime,
+				Exchange:     "okx",
 			})
 		}
 	}
