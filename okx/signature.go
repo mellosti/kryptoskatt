@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-type Signature struct {
+type signature struct {
 	Timestamp   string
 	Method      string
 	Endpoint    string
@@ -16,7 +16,7 @@ type Signature struct {
 	BodyParams  map[string]string
 }
 
-func (s Signature) Encode() string {
+func (s signature) Encode() string {
 	var bodyString string
 	if s.BodyParams != nil {
 		bytes, err := json.Marshal(s.BodyParams)

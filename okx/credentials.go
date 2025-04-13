@@ -22,7 +22,7 @@ const (
 // GenerateHeaders creates the required headers for OKX API authentication
 func (c *Credentials) GenerateHeaders(url string, method Method, queryParams map[string]string, bodyParams map[string]string) map[string]string {
 	timestamp := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
-	signature := Signature{
+	signature := signature{
 		Timestamp:   timestamp,
 		Method:      string(method),
 		Endpoint:    url,
