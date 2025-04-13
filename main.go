@@ -9,8 +9,6 @@ import (
 )
 
 func main() {
-
-	// Create a new OkxApi instance
 	okxApiAdapter := okx.NewOkxApiAdapter()
 	excelService := excel.NewExcelService(".")
 	exchangeDataCollector := &exchange.ExchangeDataCollector{
@@ -18,7 +16,6 @@ func main() {
 		FileExportService: excelService,
 	}
 
-	// Define time range for the past 30 days
 	endTime := time.Now().Unix()
 	startTime := endTime - (30 * 24 * 60 * 60) // 30 days in seconds
 
