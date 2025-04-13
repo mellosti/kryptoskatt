@@ -101,7 +101,6 @@ func (c *Client) Request(opts RequestOptions) (*http.Response, []byte, error) {
 		req.URL.RawQuery = q.Encode()
 	}
 
-	// Execute request
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, nil, fmt.Errorf("request failed: %w", err)

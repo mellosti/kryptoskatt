@@ -4,6 +4,7 @@ import "fmt"
 
 func EncodeQueryParams(queryParams map[string]string) string {
 	var queryString string
+
 	for key, value := range queryParams {
 		if queryString != "" {
 			queryString += "&"

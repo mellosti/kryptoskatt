@@ -64,8 +64,9 @@ type OkxOrderHistoryResponse struct {
 func (o *OkxApiAdapter) GetOrderHistory(startTime int64, endTime int64) ([]exchange.OrderHistory, error) {
 	endpoint := "/api/v5/trade/orders-history-archive"
 	queryParams := map[string]string{
-		"limit":    "100",
+		// Must be this order for signature to work
 		"instType": "SPOT",
+		"limit":    "100",
 	}
 
 	headers := o.credentials.GenerateHeaders(endpoint, GET, queryParams, nil)
