@@ -12,7 +12,7 @@ func main() {
 
 	// Create a new OkxApi instance
 	okxApiAdapter := okx.NewOkxApiAdapter()
-	excelService := excel.NewExcelService()
+	excelService := excel.NewExcelService(".")
 	exchangeService := &exchange.ExchangeService{
 		Api:               okxApiAdapter,
 		FileExportService: excelService,
