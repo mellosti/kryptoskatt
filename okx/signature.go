@@ -26,7 +26,11 @@ func (s signature) Encode() string {
 		bodyString = string(bytes)
 	}
 
-	queryString := "?" + http.EncodeQueryParams(s.QueryParams)
+	var queryString string
+	if len(s.QueryParams) > 0 {
+		queryString = "?" + http.EncodeQueryParams(s.QueryParams)
+	}
+
 	signatureString := fmt.Sprintf("%s%s%s%s%s", s.Timestamp, s.Method, s.Endpoint, queryString, bodyString)
 	return crypto.GetHmac(signatureString, s.SecretKey)
 }
