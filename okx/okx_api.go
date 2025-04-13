@@ -35,14 +35,103 @@ func NewOkxApiAdapter() *OkxApiAdapter {
 	}
 }
 
+type OkxDepositHistoryResponse struct {
+	Code string `json:"code"`
+	Msg  string `json:"msg"`
+	Data []struct {
+		Amt   string `json:"amt"`   // Amount
+		Ccy   string `json:"ccy"`   // Currency
+		State string `json:"state"` // Status (2 = completed)
+		OrdId string `json:"ordId"` // Order ID
+		Ts    string `json:"ts"`    // Timestamp
+	} `json:"data"`
+}
+
+type OkxWithdrawalHistoryResponse struct {
+	Code string `json:"code"`
+	Msg  string `json:"msg"`
+	Data []struct {
+		Amt   string `json:"amt"`   // Amount
+		Ccy   string `json:"ccy"`   // Currency
+		Fee   string `json:"fee"`   // Fee amount
+		TxId  string `json:"txId"`  // Transaction ID
+		State string `json:"state"` // Status (2 = completed)
+		Ts    string `json:"ts"`    // Timestamp
+	} `json:"data"`
+}
+
 func (o *OkxApiAdapter) GetWithdrawHistory(startTime int64, endTime int64) ([]exchange.TransferHistory, error) {
-	// Implement the logic to fetch withdraw history from Okx API
-	return []exchange.TransferHistory{}, nil
+	endpoint := "/api/v5/asset/withdrawal-history"
+	queryParams := map[string]string{
+		"limit": "100",
+	}
+
+	headers := o.credentials.GenerateHeaders(endpoint, GET, queryParams, nil)
+	_, body, err := o.httpClient.Get(endpoint, queryParams, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	var parsedResponse OkxWithdrawalHistoryResponse
+	if err := json.Unmarshal(body, &parsedResponse); err != nil {
+		return nil, err
+	}
+
+	withdrawals := []exchange.TransferHistory{}
+	for _, withdrawal := range parsedResponse.Data {
+		// Only include successful withdrawals (state 2)
+		if withdrawal.State == "2" {
+			withdrawals = append(withdrawals, exchange.TransferHistory{
+				Coin:          withdrawal.Ccy,
+				Amount:        withdrawal.Amt,
+				Timestamp:     util.FormatTimestampToISO(withdrawal.Ts),
+				TransactionID: withdrawal.TxId,
+				FeeAmount:     util.ParseFloat32(withdrawal.Fee),
+				FeeCoin:       withdrawal.Ccy,
+				Exchange:      "okx",
+				State:         withdrawal.State,
+			})
+		}
+	}
+
+	return withdrawals, nil
 }
 
 func (o *OkxApiAdapter) GetDepositHistory(startTime int64, endTime int64) ([]exchange.TransferHistory, error) {
-	// Implement the logic to fetch deposit history from Okx API
-	return []exchange.TransferHistory{}, nil
+	endpoint := "/api/v5/asset/deposit-history"
+	queryParams := map[string]string{
+		"limit": "100",
+	}
+
+	headers := o.credentials.GenerateHeaders(endpoint, GET, queryParams, nil)
+	_, body, err := o.httpClient.Get(endpoint, queryParams, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	var parsedResponse OkxDepositHistoryResponse
+	if err := json.Unmarshal(body, &parsedResponse); err != nil {
+		return nil, err
+	}
+
+	deposits := []exchange.TransferHistory{}
+	for _, deposit := range parsedResponse.Data {
+		// Only include successful deposits (state 2)
+		if deposit.State == "2" {
+			deposits = append(deposits, exchange.TransferHistory{
+				Coin:          deposit.Ccy,
+				Amount:        deposit.Amt,
+				Timestamp:     util.FormatTimestampToISO(deposit.Ts),
+				TransactionID: deposit.OrdId,
+				FeeAmount:     0, // Deposits typically have no fees
+				FeeCoin:       "",
+				Exchange:      "okx",
+				State:         deposit.State,
+			})
+		}
+	}
+
+	return deposits, nil
 }
 
 type OkxOrderHistoryResponse struct {
@@ -107,7 +196,7 @@ func (o *OkxApiAdapter) GetOrderHistory(startTime int64, endTime int64) ([]excha
 				SoldAmount:   soldAmount,
 				FeeAmount:    util.ParseFloat32(order.Fee) * -1,
 				FeeCurrency:  order.FeeCcy,
-				Timestamp:    order.FillTime,
+				Timestamp:    util.FormatTimestampToISO(order.FillTime),
 				Exchange:     "okx",
 			})
 		}

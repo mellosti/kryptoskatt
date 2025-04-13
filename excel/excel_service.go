@@ -101,4 +101,25 @@ func (es *ExcelService) addOrderRow(file *excelize.File, row int, order exchange
 
 // addTransferRow adds a deposit or withdrawal row to the Excel file
 func (es *ExcelService) addTransferRow(file *excelize.File, row int, transfer exchange.TransferHistory, transferType string) {
+	file.SetCellValue(sheetName, fmt.Sprintf("A%d", row), transfer.Timestamp)
+	file.SetCellValue(sheetName, fmt.Sprintf("B%d", row), transferType)
+
+	// For deposits, set the "Inn" columns
+	if transferType == TypeDeposit {
+		file.SetCellValue(sheetName, fmt.Sprintf("C%d", row), transfer.Amount)
+		file.SetCellValue(sheetName, fmt.Sprintf("D%d", row), transfer.Coin)
+		file.SetCellValue(sheetName, fmt.Sprintf("E%d", row), "")
+		file.SetCellValue(sheetName, fmt.Sprintf("F%d", row), "")
+	} else {
+		// For withdrawals, set the "Ut" columns
+		file.SetCellValue(sheetName, fmt.Sprintf("C%d", row), "")
+		file.SetCellValue(sheetName, fmt.Sprintf("D%d", row), "")
+		file.SetCellValue(sheetName, fmt.Sprintf("E%d", row), transfer.Amount)
+		file.SetCellValue(sheetName, fmt.Sprintf("F%d", row), transfer.Coin)
+	}
+
+	file.SetCellValue(sheetName, fmt.Sprintf("G%d", row), transfer.FeeAmount)
+	file.SetCellValue(sheetName, fmt.Sprintf("H%d", row), transfer.FeeCoin)
+	file.SetCellValue(sheetName, fmt.Sprintf("I%d", row), transfer.Exchange)
+	file.SetCellValue(sheetName, fmt.Sprintf("J%d", row), transfer.TransactionID)
 }

@@ -8,8 +8,14 @@ type ExchangeService struct {
 }
 
 type TransferHistory struct {
-	Coin   string
-	Amount string
+	Coin          string
+	Amount        string
+	Timestamp     string
+	TransactionID string
+	FeeAmount     float32
+	FeeCoin       string
+	Exchange      string
+	State         string
 }
 
 type OrderHistory struct {
