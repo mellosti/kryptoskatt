@@ -13,8 +13,8 @@ func main() {
 	// Create a new OkxApi instance
 	okxApiAdapter := okx.NewOkxApiAdapter()
 	excelService := excel.NewExcelService(".")
-	exchangeService := &exchange.ExchangeService{
-		Api:               okxApiAdapter,
+	exchangeDataCollector := &exchange.ExchangeDataCollector{
+		ExchangeAdapter:   okxApiAdapter,
 		FileExportService: excelService,
 	}
 
@@ -22,5 +22,5 @@ func main() {
 	endTime := time.Now().Unix()
 	startTime := endTime - (30 * 24 * 60 * 60) // 30 days in seconds
 
-	exchangeService.Process(startTime, endTime)
+	exchangeDataCollector.FetchAndExportExchangeData(startTime, endTime)
 }

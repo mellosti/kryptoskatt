@@ -2,8 +2,8 @@ package exchange
 
 import "fmt"
 
-type ExchangeService struct {
-	Api               ExchangeAdapter
+type ExchangeDataCollector struct {
+	ExchangeAdapter   ExchangeAdapter
 	FileExportService FileExportService
 }
 
@@ -39,9 +39,9 @@ type FileExportService interface {
 	ExportToFile(withdrawals []TransferHistory, deposits []TransferHistory, orders []OrderHistory) error
 }
 
-func (es *ExchangeService) Process(startTime int64, endTime int64) error {
+func (es *ExchangeDataCollector) FetchAndExportExchangeData(startTime int64, endTime int64) error {
 	// Get withdraw history
-	withdrawals, err := es.Api.GetWithdrawHistory(startTime, endTime)
+	withdrawals, err := es.ExchangeAdapter.GetWithdrawHistory(startTime, endTime)
 	if err != nil {
 		return fmt.Errorf("error fetching withdraw history: %v", err)
 	} else {
@@ -49,7 +49,7 @@ func (es *ExchangeService) Process(startTime int64, endTime int64) error {
 	}
 
 	// Get deposit history
-	deposits, err := es.Api.GetDepositHistory(startTime, endTime)
+	deposits, err := es.ExchangeAdapter.GetDepositHistory(startTime, endTime)
 	if err != nil {
 		return fmt.Errorf("error fetching deposit history: %w", err)
 	} else {
@@ -57,7 +57,7 @@ func (es *ExchangeService) Process(startTime int64, endTime int64) error {
 	}
 
 	// Get order history
-	orders, err := es.Api.GetOrderHistory(startTime, endTime)
+	orders, err := es.ExchangeAdapter.GetOrderHistory(startTime, endTime)
 	if err != nil {
 		return fmt.Errorf("error fetching order history: %w", err)
 	} else {
